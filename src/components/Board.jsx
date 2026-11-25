@@ -2,6 +2,7 @@ import Column from "./Column";
 import { useState, useEffect } from "react";
 import AddTask from "./AddTask";
 import EditTaskModal from "./EditTaskModal";
+import { DragDropContext } from "@hello-pangea/dnd";
 //the board
 export default function Board() {
 
@@ -74,6 +75,36 @@ function updateTask(id, newTitle) {
   }));
 }
 
+//dragAndDrop
+function handleDragEnd(result) {
+  const { source, destination, draggableId } = result;
+
+  // dropped outside a column
+  if (!destination) return;
+
+  // dropped in the same place
+  if (
+    source.droppableId === destination.droppableId &&
+    source.index === destination.index
+  ) return;
+
+  setTasks(prevTasks => {
+    const movedTask = prevTasks.find(task => String(task.id) === draggableId);
+    const remaining = prevTasks.filter(task => task !== movedTask);
+    const updatedTask = { ...movedTask, status: destination.droppableId };
+
+    // find the task that should end up right after the dropped one
+    const destinationTasks = remaining.filter(
+      task => task.status === destination.droppableId
+    );
+    const taskAfter = destinationTasks[destination.index];
+    const insertAt = taskAfter ? remaining.indexOf(taskAfter) : remaining.length;
+
+    remaining.splice(insertAt, 0, updatedTask);
+    return remaining;
+  });
+}
+
 useEffect(() => {
     localStorage.setItem("tasks", JSON.stringify(tasks));
     }, [tasks]);
@@ -82,7 +113,8 @@ useEffect(() => {
 
       <AddTask addTask={addTask} />
 
-      <div style={{ display: "flex", 
+      <DragDropContext onDragEnd={handleDragEnd}>
+      <div style={{ display: "flex",
                     gap: "20px",
                     justifyContent: "center" 
                     }}>
@@ -122,6 +154,7 @@ useEffect(() => {
     />
     )}
       </div>
+      </DragDropContext>
 
     </div>
   );
